@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generator Struk Transaksi Real</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <style>
+    :root, [data-theme="light"] {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+      --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+      --space-12: 3rem; --space-16: 4rem;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-full: 9999px;
+      --color-bg: #f7f6f2; --color-surface: #fbfbf9; --color-surface-2: #f3f0ec; --color-border: #d4d1ca;
+      --color-text: #28251d; --color-text-muted: #6f6c66; --color-text-faint: #a6a39d;
+      --color-primary: #01696f; --color-primary-hover: #0c4e54; --color-success: #437a22;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06); --shadow-md: 0 8px 24px rgb(0 0 0 / 0.08);
+      --font-body: 'Inter', system-ui, sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    }
+    [data-theme="dark"] {
+      --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #22211f; --color-border: #393836;
+      --color-text: #e7e5e1; --color-text-muted: #a09d97; --color-text-faint: #74716c;
+      --color-primary: #4f98a3; --color-primary-hover: #6daeb8; --color-success: #7fbe56;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.24); --shadow-md: 0 8px 24px rgb(0 0 0 / 0.32);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: var(--font-body); font-size: var(--text-base); line-height: 1.6;
+      color: var(--color-text); background:
+      radial-gradient(circle at top right, color-mix(in oklab, var(--color-primary) 12%, transparent), transparent 32%), var(--color-bg);
+    }
+    .app { width: min(1200px, calc(100% - 2rem)); margin: 0 auto; padding: 2rem 0 3rem; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand svg { width: 40px; height: 40px; color: var(--color-primary); }
+    .brand h1 { margin: 0; font-size: var(--text-xl); line-height: 1.1; }
+    .brand p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); max-width: 70ch; }
+    .toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    button, input, select, textarea { font: inherit; }
+    .theme-toggle, .ghost-btn, .primary-btn {
+      min-height: 44px; border-radius: 9999px; border: 1px solid color-mix(in oklab, var(--color-text) 12%, transparent);
+      padding: 0 1rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer;
+      transition: 180ms ease; background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-sm);
+    }
+    .primary-btn { background: var(--color-primary); color: white; border-color: transparent; }
+    .primary-btn:hover { background: var(--color-primary-hover); }
+    .ghost-btn:hover, .theme-toggle:hover { background: var(--color-surface-2); }
+    .layout { display: grid; grid-template-columns: minmax(320px, 430px) minmax(320px, 1fr); gap: 1.5rem; align-items: start; }
+    .panel {
+      background: color-mix(in oklab, var(--color-surface) 92%, transparent); border: 1px solid color-mix(in oklab, var(--color-text) 10%, transparent);
+      border-radius: 1rem; box-shadow: var(--shadow-md); overflow: hidden; backdrop-filter: blur(12px);
+    }
+    .panel-header { padding: 1.5rem; border-bottom: 1px solid color-mix(in oklab, var(--color-text) 8%, transparent); }
+    .panel-header h2 { margin: 0 0 0.5rem; font-size: var(--text-lg); }
+    .panel-header p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
+    .panel-body, .preview-wrap { padding: 1.5rem; display: grid; gap: 1.25rem; }
+    .field { display: grid; gap: 0.5rem; }
+    .field label { font-size: var(--text-sm); font-weight: 600; }
+    .field input, .field select, .field textarea {
+      width: 100%; min-height: 44px; padding: 0.85rem 1rem; border-radius: 0.5rem; background: var(--color-surface-2);
+      border: 1px solid color-mix(in oklab, var(--color-text) 12%, transparent); color: var(--color-text);
+    }
+    .field textarea { min-height: 88px; resize: vertical; }
+    .inline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .helper { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .chip {
+      border: 1px solid color-mix(in oklab, var(--color-text) 10%, transparent); background: var(--color-surface-2);
+      border-radius: 9999px; padding: 0.55rem 0.9rem; font-size: var(--text-xs); cursor: pointer;
+    }
+    .chip.active { background: color-mix(in oklab, var(--color-primary) 14%, var(--color-surface)); color: var(--color-primary); border-color: color-mix(in oklab, var(--color-primary) 28%, transparent); }
+    .receipt {
+      width: min(100%, 430px); margin: 0 auto; background: #fffefb; color: #111; border-radius: 0.25rem; padding: 1.25rem 1rem 1rem;
+      box-shadow: 0 12px 32px rgb(0 0 0 / 0.12); font-family: var(--font-mono); position: relative;
+    }
+    .receipt::before, .receipt::after {
+      content: ''; position: absolute; left: 0; right: 0; height: 10px; background: radial-gradient(circle at 10px -2px, transparent 8px, #fffefb 8.5px); background-size: 20px 10px;
+    }
+    .receipt::before { top: -10px; }
+    .receipt::after { bottom: -10px; transform: rotate(180deg); }
+    .rc-center { text-align: center; }
+    .rc-line { border-top: 1px dashed #666; margin: 0.5rem 0; }
+    .rc-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.93rem; }
+    .rc-muted { color: #555; }
+    .rc-items { display: grid; gap: 0.4rem; margin: 0.7rem 0; }
+    .rc-item-name { max-width: 68%; }
+    .barcode-wrap { margin-top: 0.9rem; display: grid; place-items: center; gap: 0.2rem; }
+    .barcode-wrap svg { width: 100%; max-width: 280px; height: 58px; }
+    .barcode-label { font-size: 0.72rem; color: #555; letter-spacing: 0.08em; }
+    .status { font-size: var(--text-sm); padding: 0.85rem 1rem; border-radius: 0.5rem; background: color-mix(in oklab, var(--color-success) 12%, var(--color-surface)); border: 1px solid color-mix(in oklab, var(--color-success) 24%, transparent); }
+    .preview-actions, .toolbar { display: flex; flex-wrap: wrap; }
+    .catalog { display: grid; gap: 0.75rem; max-height: 260px; overflow: auto; padding-right: 0.5rem; }
+    .catalog-card { border: 1px solid color-mix(in oklab, var(--color-text) 8%, transparent); background: var(--color-surface-2); border-radius: 0.75rem; padding: 1rem; }
+    .catalog-card h3 { margin: 0 0 0.2rem; font-size: var(--text-sm); }
+    .catalog-card p { margin: 0; color: var(--color-text-muted); font-size: var(--text-xs); }
+    @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } .topbar { flex-direction: column; align-items: flex-start; } }
+    @media (max-width: 560px) { .app { width: min(100% - 1rem, 100%); padding-top: 1rem; } .inline-grid { grid-template-columns: 1fr; } .receipt { width: 100%; } }
+    @media print { body * { visibility: hidden !important; } .receipt, .receipt * { visibility: visible !important; } .receipt { box-shadow: none; width: 80mm; margin: 0 auto; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" fill="none" aria-label="Logo struk generator">
+          <path d="M18 11h20l8 8v34H18z" stroke="currentColor" stroke-width="4" />
+          <path d="M38 11v10h10" stroke="currentColor" stroke-width="4" />
+          <path d="M25 30h14M25 38h14M25 46h9" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+        </svg>
+        <div>
+          <h1>Generator Struk</h1>
+          <p>Struk transaksi realistis dengan barcode dan unduh PDF untuk semua kategori yang sudah diminta.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ganti tema">🌙 Tema</button>
+        <button class="ghost-btn" type="button" id="randomBtn">Acak transaksi</button>
+        <button class="primary-btn" type="button" id="printBtn">Cetak</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Form transaksi</h2>
+          <p>Pilih kategori, edit data, lalu unduh hasil akhir sebagai PDF dengan barcode di bagian bawah struk.</p>
+        </div>
+        <div class="panel-body">
+          <div class="field"><label for="category">Kategori</label><select id="category"></select></div>
+          <div class="field"><label>Kategori cepat</label><div class="chips" id="chips"></div></div>
+          <div class="inline-grid">
+            <div class="field"><label for="merchant">Merchant</label><input id="merchant" type="text" /></div>
+            <div class="field"><label for="city">Kota</label><input id="city" type="text" /></div>
+          </div>
+          <div class="inline-grid">
+            <div class="field"><label for="date">Tanggal</label><input id="date" type="date" /></div>
+            <div class="field"><label for="time">Jam</label><input id="time" type="time" /></div>
+          </div>
+          <div class="inline-grid">
+            <div class="field">
+              <label for="payment">Metode bayar</label>
+              <select id="payment">
+                <option>Debit BCA</option><option>QRIS</option><option>Tunai</option><option>GoPay</option><option>OVO</option><option>ShopeePay</option><option>Kartu Kredit Mandiri</option><option>Transfer Bank</option>
+              </select>
+            </div>
+            <div class="field"><label for="cashier">Kasir / Operator</label><input id="cashier" type="text" /></div>
+          </div>
+          <div class="field">
+            <label for="items">Daftar item</label>
+            <textarea id="items"></textarea>
+            <div class="helper">Format per baris: Nama Item | Qty | Harga Satuan</div>
+          </div>
+          <div class="inline-grid">
+            <div class="field"><label for="tax">Pajak / biaya layanan</label><input id="tax" type="number" min="0" step="100" /></div>
+            <div class="field"><label for="discount">Diskon</label><input id="discount" type="number" min="0" step="100" value="0" /></div>
+          </div>
+          <div class="inline-grid">
+            <div class="field"><label for="invoice">No. invoice</label><input id="invoice" type="text" /></div>
+            <div class="field"><label for="terminal">Terminal / ref</label><input id="terminal" type="text" /></div>
+          </div>
+          <div class="status" id="statusBox">Siap membuat struk dengan barcode dan ekspor PDF.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Preview struk</h2>
+          <p>Gunakan tombol unduh PDF untuk menyimpan preview struk menjadi file PDF langsung dari browser.</p>
+        </div>
+        <div class="preview-wrap">
+          <div class="preview-actions">
+            <button class="primary-btn" type="button" id="downloadPdfBtn">Unduh PDF</button>
+            <button class="ghost-btn" type="button" id="downloadJsonBtn">Unduh JSON</button>
+          </div>
+          <article class="receipt" id="receipt" aria-label="Preview struk"></article>
+          <div>
+            <h2 style="font-size: var(--text-lg); margin: 0 0 0.75rem;">Katalog merchant realistis</h2>
+            <div class="catalog" id="catalog"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const dataset = {
+      "Food & dining": { merchants: [
+        { name: "Waroeng Steak & Shake", city: "Semarang", items: [["Sirloin Steak",1,43500],["Orange Juice",1,18000],["French Fries",1,16000]], taxRate: 0.1 },
+        { name: "Bakmi GM", city: "Yogyakarta", items: [["Bakmi Special GM",1,32500],["Pangsit Goreng",1,23000],["Es Teh Manis",1,9000]], taxRate: 0.1 },
+        { name: "Janji Jiwa", city: "Pekalongan", items: [["Es Kopi Susu",1,24000],["Toast Cokelat",1,21000]], taxRate: 0.1 } ] },
+      "Transport": { merchants: [
+        { name: "Bluebird", city: "Jakarta", items: [["Tarif awal",1,9000],["Perjalanan 12.4 km",1,46800],["Tol Dalam Kota",1,11500]], taxRate: 0 },
+        { name: "SPBU Pertamina", city: "Pekalongan", items: [["Pertalite 11.32 L",1,113200]], taxRate: 0 },
+        { name: "KAI Access", city: "Semarang", items: [["Tiket KA Ekonomi",1,98000],["Biaya layanan",1,7500]], taxRate: 0 } ] },
+      "Utilities": { merchants: [
+        { name: "PLN Mobile", city: "Pekalongan", items: [["Token listrik 200.000",1,200000],["Biaya admin",1,2500]], taxRate: 0 },
+        { name: "PDAM Tirta Kajen", city: "Pekalongan", items: [["Tagihan air Mei",1,86750],["Administrasi",1,3500]], taxRate: 0 },
+        { name: "IndiHome", city: "Batang", items: [["Paket Internet 30 Mbps",1,280000],["PPN 11%",1,30800]], taxRate: 0 } ] },
+      "Healthcare": { merchants: [
+        { name: "Kimia Farma", city: "Pekalongan", items: [["Paracetamol 500 mg",2,8500],["Vitamin C 1000",1,42000],["Masker Medis",1,12000]], taxRate: 0.11 },
+        { name: "Klinik Pratama Sehat", city: "Tegal", items: [["Konsultasi dokter umum",1,85000],["Biaya administrasi",1,15000]], taxRate: 0 },
+        { name: "Apotek K24", city: "Semarang", items: [["Antasida",1,18500],["Oralit",2,5500]], taxRate: 0.11 } ] },
+      "Entertainment": { merchants: [
+        { name: "Cinema XXI", city: "Pekalongan", items: [["Tiket Reguler",2,45000],["Popcorn Caramel",1,35000],["Coca-Cola",1,22000]], taxRate: 0.1 },
+        { name: "Timezone", city: "Semarang", items: [["Top up Powercard",1,100000]], taxRate: 0 },
+        { name: "Spotify Gift Center", city: "Jakarta", items: [["Voucher musik",1,54990]], taxRate: 0.11 } ] },
+      "Shopping": { merchants: [
+        { name: "Indomaret", city: "Pekalongan", items: [["Ultra Milk 1L",2,18900],["Roti Tawar",1,17200],["Sabun Cair",1,24900]], taxRate: 0.11 },
+        { name: "Ramayana", city: "Tegal", items: [["Kemeja Pria",1,149900],["Kaos Dalam",2,29900]], taxRate: 0.11 },
+        { name: "ACE Hardware", city: "Semarang", items: [["Lampu LED 12W",2,39500],["Baterai AA",1,28900]], taxRate: 0.11 } ] },
+      "Travel": { merchants: [
+        { name: "Traveloka", city: "Jakarta", items: [["Hotel 1 malam",1,425000],["Biaya layanan",1,25000]], taxRate: 0.11 },
+        { name: "AirAsia", city: "Surabaya", items: [["Tiket pesawat",1,785000],["Bagasi 20kg",1,140000]], taxRate: 0 },
+        { name: "Tiket.com", city: "Bandung", items: [["Bus AKAP Executive",1,215000],["Biaya platform",1,6000]], taxRate: 0.11 } ] },
+      "Education": { merchants: [
+        { name: "Gramedia", city: "Pekalongan", items: [["Buku latihan TOEFL",1,98000],["Pulpen Gel",2,13500]], taxRate: 0.11 },
+        { name: "Ruangguru", city: "Jakarta", items: [["Paket belajar bulanan",1,149000]], taxRate: 0.11 },
+        { name: "Dicoding", city: "Bandung", items: [["Kelas Front-End Dasar",1,399000]], taxRate: 0.11 } ] },
+      "Subscriptions": { merchants: [
+        { name: "Netflix", city: "Jakarta", items: [["Paket Standard",1,153000]], taxRate: 0.11 },
+        { name: "YouTube Premium", city: "Jakarta", items: [["Monthly Individual",1,86990]], taxRate: 0.11 },
+        { name: "Canva", city: "Singapore", items: [["Canva Pro Monthly",1,95000]], taxRate: 0.11 } ] }
+    };
+
+    const el = {
+      category: document.getElementById('category'), chips: document.getElementById('chips'), merchant: document.getElementById('merchant'), city: document.getElementById('city'),
+      date: document.getElementById('date'), time: document.getElementById('time'), payment: document.getElementById('payment'), cashier: document.getElementById('cashier'),
+      items: document.getElementById('items'), tax: document.getElementById('tax'), discount: document.getElementById('discount'), invoice: document.getElementById('invoice'),
+      terminal: document.getElementById('terminal'), receipt: document.getElementById('receipt'), statusBox: document.getElementById('statusBox'), catalog: document.getElementById('catalog')
+    };
+    const categories = Object.keys(dataset);
+    const pad = n => String(n).padStart(2, '0');
+    const rupiah = n => new Intl.NumberFormat('id-ID').format(Math.round(n));
+
+    categories.forEach(cat => {
+      const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; el.category.appendChild(opt);
+      const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'chip'; chip.textContent = cat;
+      chip.addEventListener('click', () => { el.category.value = cat; randomize(cat); updateActiveChip(); }); el.chips.appendChild(chip);
+    });
+
+    function updateActiveChip() { [...el.chips.children].forEach(chip => chip.classList.toggle('active', chip.textContent === el.category.value)); }
+    function randomFrom(list) { return list[Math.floor(Math.random() * list.length)]; }
+    function randomDateTime() {
+      const now = new Date(); const past = new Date(now.getTime() - Math.floor(Math.random() * 120) * 86400000);
+      past.setHours(8 + Math.floor(Math.random() * 13), Math.floor(Math.random() * 60), 0, 0);
+      return { date: `${past.getFullYear()}-${pad(past.getMonth()+1)}-${pad(past.getDate())}`, time: `${pad(past.getHours())}:${pad(past.getMinutes())}` };
+    }
+    function buildItemsText(items) { return items.map(([name, qty, price]) => `${name}|${qty}|${price}`).join('\n'); }
+    function parseItems() {
+      return el.items.value.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+        const [name, qty, price] = line.split('|').map(s => s.trim());
+        return { name, qty: Number(qty || 1), price: Number(price || 0) };
+      }).filter(item => item.name && item.qty > 0 && item.price >= 0);
+    }
+    function generateInvoice(category) { const prefix = category.replace(/[^A-Z]/gi, '').slice(0,3).toUpperCase() || 'TRX'; return `${prefix}-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`; }
+    function generateTerminal() { return `TID${Math.floor(100000 + Math.random() * 900000)} / REF${Math.floor(10000000 + Math.random() * 90000000)}`; }
+    function barcodeValue() { return `${(el.invoice.value || 'TRX').replace(/[^A-Z0-9]/gi,'').slice(0,16)}${Date.now().toString().slice(-6)}`.slice(0,22); }
+
+    function randomize(category = el.category.value || categories[0]) {
+      const bucket = dataset[category]; const merchant = randomFrom(bucket.merchants); const dt = randomDateTime();
+      const paymentOptions = ["Debit BCA", "QRIS", "Tunai", "GoPay", "OVO", "ShopeePay", "Kartu Kredit Mandiri", "Transfer Bank"];
+      const cashiers = ["Ayu", "Rina", "Dimas", "Operator 03", "Kasir 02", "Nina", "Bayu", "Santi"];
+      const subtotal = merchant.items.reduce((acc, [,q,p]) => acc + q*p, 0); const tax = merchant.taxRate > 0 ? Math.round(subtotal * merchant.taxRate) : 0;
+      el.merchant.value = merchant.name; el.city.value = merchant.city; el.date.value = dt.date; el.time.value = dt.time; el.payment.value = randomFrom(paymentOptions);
+      el.cashier.value = randomFrom(cashiers); el.items.value = buildItemsText(merchant.items); el.tax.value = tax; el.discount.value = 0;
+      el.invoice.value = generateInvoice(category); el.terminal.value = generateTerminal();
+      renderCatalog(category); renderReceipt(); updateActiveChip(); el.statusBox.textContent = `Template ${category} dimuat dengan barcode aktif.`;
+    }
+
+    function renderCatalog(category) {
+      el.catalog.innerHTML = '';
+      dataset[category].merchants.forEach(merchant => {
+        const subtotal = merchant.items.reduce((acc, [,q,p]) => acc + q*p, 0);
+        const card = document.createElement('article'); card.className = 'catalog-card';
+        card.innerHTML = `<h3>${merchant.name}</h3><p>${merchant.city} · contoh subtotal Rp ${rupiah(subtotal)}</p>`;
+        el.catalog.appendChild(card);
+      });
+    }
+
+    function renderReceipt() {
+      const items = parseItems(); const subtotal = items.reduce((acc, item) => acc + item.qty * item.price, 0);
+      const tax = Number(el.tax.value || 0); const discount = Number(el.discount.value || 0); const total = Math.max(subtotal + tax - discount, 0);
+      const category = el.category.value; const barcode = barcodeValue();
+      const footerByCategory = {
+        "Food & dining": "Terima kasih, selamat menikmati.", "Transport": "Simpan struk ini untuk keperluan klaim.", "Utilities": "Pembayaran berhasil diproses.",
+        "Healthcare": "Jaga kesehatan dan patuhi aturan pakai.", "Entertainment": "Enjoy your day.", "Shopping": "Barang yang sudah dibeli tidak dapat ditukar tanpa syarat.",
+        "Travel": "Datang lebih awal untuk check-in.", "Education": "Semoga belajar Anda lancar.", "Subscriptions": "Tagihan berikutnya menyesuaikan periode aktif."
+      };
+      const itemsHtml = items.map(item => `<div class="rc-row"><div class="rc-item-name">${item.name}<br><span class="rc-muted">${item.qty} x ${rupiah(item.price)}</span></div><div>Rp ${rupiah(item.qty * item.price)}</div></div>`).join('');
+      el.receipt.innerHTML = `
+        <div class="rc-center"><strong>${el.merchant.value || '-'}</strong><br><span class="rc-muted">${el.city.value || '-'} · ${category}</span><br><span class="rc-muted">${el.date.value || '-'} ${el.time.value || ''}</span></div>
+        <div class="rc-line"></div>
+        <div class="rc-row"><span>Invoice</span><span>${el.invoice.value || '-'}</span></div>
+        <div class="rc-row"><span>Kasir</span><span>${el.cashier.value || '-'}</span></div>
+        <div class="rc-row"><span>Pembayaran</span><span>${el.payment.value || '-'}</span></div>
+        <div class="rc-row"><span>Ref</span><span>${el.terminal.value || '-'}</span></div>
+        <div class="rc-line"></div>
+        <div class="rc-items">${itemsHtml || '<div class="rc-row"><span>Belum ada item</span><span>Rp 0</span></div>'}</div>
+        <div class="rc-line"></div>
+        <div class="rc-row"><span>Subtotal</span><span>Rp ${rupiah(subtotal)}</span></div>
+        <div class="rc-row"><span>Pajak/Biaya</span><span>Rp ${rupiah(tax)}</span></div>
+        <div class="rc-row"><span>Diskon</span><span>- Rp ${rupiah(discount)}</span></div>
+        <div class="rc-row" style="font-size:1.05rem;font-weight:700"><span>Total</span><span>Rp ${rupiah(total)}</span></div>
+        <div class="rc-line"></div>
+        <div class="barcode-wrap"><svg id="barcode"></svg><div class="barcode-label">${barcode}</div></div>
+        <div class="rc-line"></div>
+        <div class="rc-center rc-muted">${footerByCategory[category] || 'Terima kasih.'}<br>*** STRUK DIGITAL ***</div>`;
+      JsBarcode('#barcode', barcode, { format: 'CODE128', displayValue: false, margin: 0, height: 56, width: 1.5, background: '#fffefb', lineColor: '#111' });
+    }
+
+    async function downloadPdf() {
+      renderReceipt();
+      const receipt = document.getElementById('receipt');
+      const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#fffefb' });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'mm', format: [90, Math.max(120, (canvas.height / canvas.width) * 90 + 8)] });
+      const pdfWidth = 80;
+      const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
+      pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth, pdfHeight);
+      pdf.save(`struk-${el.category.value.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+      el.statusBox.textContent = 'PDF berhasil dibuat dan barcode ikut disertakan.';
+    }
+
+    [el.category, el.merchant, el.city, el.date, el.time, el.payment, el.cashier, el.items, el.tax, el.discount, el.invoice, el.terminal].forEach(node => {
+      node.addEventListener('input', () => { if (node === el.category) { renderCatalog(el.category.value); updateActiveChip(); } renderReceipt(); });
+    });
+    el.category.addEventListener('change', () => randomize(el.category.value));
+
+    document.getElementById('randomBtn').addEventListener('click', () => randomize(el.category.value));
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+    document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdf);
+    document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+      const payload = { category: el.category.value, merchant: el.merchant.value, city: el.city.value, date: el.date.value, time: el.time.value, payment: el.payment.value, cashier: el.cashier.value, invoice: el.invoice.value, terminal: el.terminal.value, items: parseItems(), tax: Number(el.tax.value || 0), discount: Number(el.discount.value || 0), barcode: barcodeValue() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' }); const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `struk-${el.category.value.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    (function initTheme(){ const root = document.documentElement; let mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; root.setAttribute('data-theme', mode); const btn = document.querySelector('[data-theme-toggle]'); btn.textContent = mode === 'dark' ? '☀️ Tema' : '🌙 Tema'; btn.addEventListener('click', () => { mode = mode === 'dark' ? 'light' : 'dark'; root.setAttribute('data-theme', mode); btn.textContent = mode === 'dark' ? '☀️ Tema' : '🌙 Tema'; }); })();
+
+    el.category.value = categories[0]; randomize(categories[0]);
+  </script>
+</body>
+</html>
